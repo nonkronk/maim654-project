@@ -1,6 +1,6 @@
 # Electricity Theft Detection with Trustworthy AI
 
-A group project for the [Master in Artificial Intelligence (UNITEN)](https://www.uniten.edu.my/programme/postgraduate/master-in-artificial-intelligence-by-coursework-project), developed for the Advanced Artificial Intelligence course taught by Dr Ahmed Mubarak.
+A group project for the [Master in Artificial Intelligence (UNITEN)](https://www.uniten.edu.my/programme/postgraduate/master-in-artificial-intelligence-by-coursework-project), developed for the MAIM654: Advanced Artificial Intelligence course taught by Dr Ahmed Mubarak.
 
 ## Project Context
 
