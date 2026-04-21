@@ -7,6 +7,11 @@ Program: Master in Artificial Intelligence (Coursework and Project)
 Supervisor: Dr Ahmed Mubarak
 Date: April 2026
 
+Project repository context:
+- README: [../../README.md](../../README.md)
+- Project statement: [../../project-statement.md](../../project-statement.md)
+- Implementation notebook: [../../colab/notebook.ipynb](../../colab/notebook.ipynb)
+
 ## Title
 
 Electricity Theft Detection from Smart Meter Time-Series Data using LSTM with Explainable AI and Adversarial Robustness Testing
@@ -20,6 +25,8 @@ Electricity Theft Detection from Smart Meter Time-Series Data using LSTM with Ex
 ## Abstract
 
 Electricity theft is a persistent challenge for utility providers, causing major financial losses and operational instability. This project presents a trustworthy machine learning pipeline for electricity theft detection using smart meter load profiles. We train a long short-term memory (LSTM) classifier on public electricity consumption data with synthetic theft scenarios to simulate realistic anomaly patterns. To improve trust and deployment readiness, we integrate two advanced AI components: explainable AI (SHAP and LIME) and adversarial robustness testing (FGSM). We evaluate performance using precision, recall, F1-score, and precision-recall curves, then measure degradation under perturbation strengths. Results demonstrate that the proposed model can detect suspicious patterns while exposing key decision factors and robustness limits. The framework is designed for end-to-end execution in Google Colab and aligns with practical constraints for educational and early deployment studies.
+
+Template note: keep this abstract between 150 and 220 words for IEEE conference style readability.
 
 Keywords: electricity theft detection, LSTM, explainable AI, SHAP, LIME, adversarial machine learning, FGSM, trustworthy AI
 
@@ -40,6 +47,10 @@ Given hourly smart meter load sequences, classify each sample as normal usage or
 - Integrate explainability using SHAP and LIME to justify predictions.
 - Evaluate adversarial robustness using FGSM and analyze metric degradation.
 - Provide practical insights for trustworthy AI deployment in energy systems.
+
+Alignment with README narrative:
+- Temporal train/test split to mimic practical deployment behavior.
+- Trustworthiness focus on explanation quality plus robustness stress testing.
 
 ### D. Paper Organization
 
@@ -135,6 +146,15 @@ Template values to fill after final runs:
 - Number of LSTM layers: [fill]
 - Train/test split ratio: [fill]
 
+Suggested baseline defaults (edit if changed in notebook):
+- Window size: 24
+- Batch size: 64
+- Learning rate: 0.001
+- Epochs: 30
+- LSTM hidden size: 64
+- Number of LSTM layers: 2
+- Train/test split ratio: 80/20 (chronological)
+
 ### C. Evaluation Metrics
 
 - Precision
@@ -143,6 +163,11 @@ Template values to fill after final runs:
 - PR-AUC
 - False negative rate (critical for missed theft)
 - Robustness drop = (F1_clean - F1_adv) / F1_clean
+
+Visualization checklist for this section:
+- Precision-recall curve on clean test data
+- Confusion matrix (clean)
+- Metric-vs-epsilon robustness curve (FGSM)
 
 ## V. Results and Discussion
 
@@ -164,6 +189,11 @@ Points to report:
 - Most influential time steps/features from SHAP
 - Example local explanation from LIME and operational interpretation
 - Whether explanations align with expected theft behavior
+
+Figure placeholders:
+- Fig. 1: SHAP global feature importance summary
+- Fig. 2: SHAP force/waterfall plot for one true-positive theft sample
+- Fig. 3: LIME explanation for one borderline sample
 
 ### C. Adversarial Robustness Findings
 
@@ -215,6 +245,12 @@ This report is prepared as part of the Advanced Artificial Intelligence course p
 [4] M. R. Asghar, G. Dan, D. Miorandi, and I. Chlamtac, "Smart meter data privacy and security: A survey," IEEE Communications Surveys and Tutorials, vol. 19, no. 4, pp. 2820-2835, 2017.
 
 [5] Add at least one recent (2021+) electricity theft or smart-grid anomaly detection paper.
+
+Reference links for drafting:
+- Jokar et al. (2016): https://doi.org/10.1109/TSG.2015.2425222
+- Lundberg and Lee (2017): https://arxiv.org/abs/1705.07874
+- Goodfellow et al. (2015): https://arxiv.org/abs/1412.6572
+- Asghar et al. (2017): https://doi.org/10.1109/COMST.2017.2720195
 
 ## Writing Checklist
 
