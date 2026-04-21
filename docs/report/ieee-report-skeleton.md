@@ -1,10 +1,10 @@
 # IEEE Report Draft - Electricity Theft Detection with Trustworthy AI
 
-Paper type: Course Project Report (3 to 5 pages, IEEE style)
-Course: Advanced Artificial Intelligence
-Institution: Universiti Tenaga Nasional (UNITEN)
-Program: Master in Artificial Intelligence (Coursework and Project)
-Supervisor: Dr Ahmed Mubarak
+Paper type: Course Project Report (3 to 5 pages, IEEE style)  
+Course: Advanced Artificial Intelligence  
+Institution: Universiti Tenaga Nasional (UNITEN)  
+Program: Master in Artificial Intelligence (Coursework and Project)  
+Supervisor: Dr Ahmed Mubarak  
 Date: April 2026
 
 Project repository context:
@@ -24,156 +24,83 @@ Electricity Theft Detection from Smart Meter Time-Series Data using LSTM with Ex
 
 ## Abstract
 
-Electricity theft is a persistent challenge for utility providers, causing major financial losses and operational instability. This project presents a trustworthy machine learning pipeline for electricity theft detection using smart meter load profiles. We train a long short-term memory (LSTM) classifier on public electricity consumption data with synthetic theft scenarios to simulate realistic anomaly patterns. To improve trust and deployment readiness, we integrate two advanced AI components: explainable AI (SHAP and LIME) and adversarial robustness testing (FGSM). We evaluate performance using precision, recall, F1-score, and precision-recall curves, then measure degradation under perturbation strengths. Results demonstrate that the proposed model can detect suspicious patterns while exposing key decision factors and robustness limits. The framework is designed for end-to-end execution in Google Colab and aligns with practical constraints for educational and early deployment studies.
-
-Template note: keep this abstract between 150 and 220 words for IEEE conference style readability.
+Electricity theft remains a major operational and economic challenge for utility providers. This report presents a trustworthy AI pipeline for theft detection from smart meter time-series data using a long short-term memory (LSTM) classifier. The approach uses public electricity load data and synthetic theft pattern injection to construct a practical binary classification problem under constrained academic resources. To align with deployment trust requirements, the model is evaluated beyond standard predictive performance through two advanced components: explainable AI (SHAP and LIME) and adversarial robustness testing (FGSM). The explainability stage identifies which temporal patterns influence theft predictions, while the robustness stage quantifies metric degradation under bounded perturbations. The full workflow is designed for end-to-end execution in Google Colab and emphasizes reproducibility, interpretability, and stress testing. This structure supports energy-domain decision making where missed anomalies and opaque predictions carry significant practical risk.
 
 Keywords: electricity theft detection, LSTM, explainable AI, SHAP, LIME, adversarial machine learning, FGSM, trustworthy AI
 
 ## I. Introduction
 
-### A. Background and Motivation
+Electricity theft includes meter tampering, illegal connections, and bypass behavior that can reduce utility revenue and degrade grid planning accuracy. In practical environments, detection systems must not only be accurate but also explainable and robust to input manipulations. This report focuses on a trustworthy AI framing for theft detection in which performance, interpretability, and robustness are evaluated together.
 
-Electricity theft includes meter tampering, illegal tapping, and bypassed metering behavior. Such activities reduce utility revenue, distort demand forecasting, and impact grid reliability.
+The task is defined as follows: given hourly smart meter load sequences, classify each sequence as normal consumption or suspected theft. The project follows a deployment-oriented workflow using temporal train/test separation, avoiding random splitting that can overestimate real-world performance.
 
-### B. Problem Statement
-
-Given hourly smart meter load sequences, classify each sample as normal usage or suspected theft behavior.
-
-### C. Contributions
-
-- Build an end-to-end electricity theft detection pipeline using public data.
-- Train an LSTM classifier for time-series anomaly classification.
-- Integrate explainability using SHAP and LIME to justify predictions.
-- Evaluate adversarial robustness using FGSM and analyze metric degradation.
-- Provide practical insights for trustworthy AI deployment in energy systems.
-
-Alignment with README narrative:
-- Temporal train/test split to mimic practical deployment behavior.
-- Trustworthiness focus on explanation quality plus robustness stress testing.
-
-### D. Paper Organization
-
-Section II reviews related work. Section III details methodology. Section IV presents experiments. Section V discusses results and trade-offs. Section VI concludes.
+The main contributions are threefold. First, we build an end-to-end LSTM-based detection pipeline over public data with synthetic theft pattern generation. Second, we apply SHAP and LIME to provide global and local explanation layers for model outputs. Third, we quantify adversarial sensitivity under FGSM perturbations and analyze the resulting trust-performance trade-offs.
 
 ## II. Related Work
 
-### A. Electricity Theft Detection
+Prior electricity theft detection studies span rule-based, statistical, and machine learning methods. Classical techniques, such as support vector machines and tree-based ensembles, are often effective under static feature sets but may struggle to represent temporal dependencies in load profiles. Deep sequence models, including recurrent neural networks and LSTM variants, are more suitable for capturing periodicity and abrupt usage shifts in smart meter data.
 
-Summarize prior methods:
-- Statistical and rule-based anomaly detection
-- Classical ML methods (SVM, Random Forest, XGBoost)
-- Deep learning approaches for smart meter sequences
+In parallel, explainable AI has become increasingly important in energy-domain analytics where operational teams require transparent rationale before taking action against suspected theft cases. Post-hoc explanation tools such as SHAP and LIME are widely used to audit model behavior and improve stakeholder confidence.
 
-### B. Explainable AI in Energy Systems
-
-Discuss why explanation matters in high-impact utility operations and auditing.
-
-### C. Adversarial Robustness for Time-Series Models
-
-Describe how adversarial perturbations can alter predictions and why robustness testing is required before deployment.
+Adversarial machine learning literature shows that neural models can be sensitive to small, structured perturbations. Although much of this work is image-centric, robustness testing remains relevant for time-series models because malicious or noisy perturbations in meter signals can alter classification outcomes.
 
 ## III. Methodology
 
 ### A. Dataset and Preprocessing
 
-Dataset: UCI Electricity Load Diagrams Dataset.
-
-Preprocessing steps:
-- Missing value handling
-- Normalization using training statistics only
-- Sliding time window construction
-- Time-aware split (train and test by chronology)
+The project uses the UCI Electricity Load Diagrams dataset. Raw meter series are cleaned for missing values, normalized using training-set statistics only, and transformed into sliding windows to form model inputs. A chronological split is applied to better simulate deployment conditions.
 
 ### B. Synthetic Theft Label Generation
 
-We inject synthetic theft behavior to create binary labels:
-- Sudden drops: multiply values by 0.2 to 0.5 for selected windows
-- Unusual spikes: increase baseline by 2x to 3x at targeted intervals
-- Flat-line tampering: replace segments with near-constant values
-
-Let x in R^T be a normal sequence and x_tilde be transformed sequence after theft injection. Label y = 1 for injected anomalies and y = 0 for normal behavior.
+Because real theft labels are limited in many public datasets, synthetic anomaly injection is used to generate training targets. Three behavior types are simulated: sudden load drops, unusual spikes, and flat-line tampering. Let $x \in \mathbb{R}^{T}$ denote a normal sequence and $\tilde{x}$ denote the transformed sequence after injection. Binary labels are defined as $y=1$ for injected theft-like patterns and $y=0$ otherwise.
 
 ### C. LSTM Classifier
 
-Input sequence x = [x_1, x_2, ..., x_T] is passed to a two-layer LSTM:
+The classifier is a two-layer LSTM followed by a dense sigmoid output layer. For input sequence $x=[x_1,\dots,x_T]$, hidden states are updated as
 
-h_t, c_t = LSTM(x_t, h_(t-1), c_(t-1))
+$$
+h_t, c_t = \mathrm{LSTM}(x_t, h_{t-1}, c_{t-1}),
+$$
 
-y_hat = sigma(W h_T + b)
+and theft probability is computed by
 
-where y_hat in [0, 1] is theft probability.
+$$
+\hat{y} = \sigma(Wh_T + b).
+$$
 
-Loss:
+Class-weighted binary cross-entropy is used to address imbalance:
 
-L = - (1/N) * sum_i [w_1 y_i log(y_hat_i) + w_0 (1 - y_i) log(1 - y_hat_i)]
+$$
+\mathcal{L} = -\frac{1}{N}\sum_i\left[w_1 y_i\log(\hat{y}_i) + w_0(1-y_i)\log(1-\hat{y}_i)\right].
+$$
 
-Use class weighting (w_1, w_0) for imbalance.
+### D. Explainability Layer
 
-### D. Explainability Module
+SHAP is used for global feature attribution and per-sample contribution analysis across time-lagged inputs. LIME provides localized, interpretable surrogate explanations for selected borderline or high-impact predictions.
 
-SHAP:
-- Compute feature attributions over time-lagged inputs.
-- Report global importance and local explanation plots.
+### E. Adversarial Robustness Layer
 
-LIME:
-- Generate local surrogate explanation for selected borderline predictions.
+FGSM perturbation is applied to the input features using
 
-### E. Adversarial Robustness Module
+$$
+x_{adv} = x + \epsilon\,\mathrm{sign}(\nabla_x\mathcal{L}(\theta, x, y)).
+$$
 
-FGSM perturbation:
-
-x_adv = x + epsilon * sign(gradient_x L(theta, x, y))
-
-Evaluate at epsilon in {0.01, 0.05, 0.10}. Compare performance against clean baseline.
+Performance is evaluated across $\epsilon \in \{0.01, 0.05, 0.10\}$ and compared with clean-input results.
 
 ## IV. Experiments and Setup
 
-### A. Environment
+Experiments run in Google Colab using Python, PyTorch, scikit-learn, SHAP, and LIME. The baseline configuration used for initial runs is: window size 24, batch size 64, learning rate 0.001, 30 epochs, hidden size 64, two LSTM layers, and an 80/20 chronological split.
 
-- Platform: Google Colab
-- Frameworks: Python, PyTorch, scikit-learn, SHAP, LIME
-- Hardware: Colab CPU/GPU runtime
+Evaluation focuses on precision, recall, F1-score, PR-AUC, false negative rate, and robustness drop under attack. Robustness drop is reported as
 
-### B. Data Split and Hyperparameters
-
-Template values to fill after final runs:
-- Window size: [fill]
-- Batch size: [fill]
-- Learning rate: [fill]
-- Epochs: [fill]
-- LSTM hidden size: [fill]
-- Number of LSTM layers: [fill]
-- Train/test split ratio: [fill]
-
-Suggested baseline defaults (edit if changed in notebook):
-- Window size: 24
-- Batch size: 64
-- Learning rate: 0.001
-- Epochs: 30
-- LSTM hidden size: 64
-- Number of LSTM layers: 2
-- Train/test split ratio: 80/20 (chronological)
-
-### C. Evaluation Metrics
-
-- Precision
-- Recall
-- F1-score
-- PR-AUC
-- False negative rate (critical for missed theft)
-- Robustness drop = (F1_clean - F1_adv) / F1_clean
-
-Visualization checklist for this section:
-- Precision-recall curve on clean test data
-- Confusion matrix (clean)
-- Metric-vs-epsilon robustness curve (FGSM)
+$$
+\Delta_{robust} = \frac{F1_{clean} - F1_{adv}}{F1_{clean}}.
+$$
 
 ## V. Results and Discussion
 
 ### A. Baseline Classification Performance
-
-Table 1 template:
 
 | Metric | Value |
 | --- | --- |
@@ -185,19 +112,14 @@ Table 1 template:
 
 ### B. Explainability Findings
 
-Points to report:
-- Most influential time steps/features from SHAP
-- Example local explanation from LIME and operational interpretation
-- Whether explanations align with expected theft behavior
+Preliminary interpretation should report whether the most influential temporal features match expected theft signatures (sudden drops, abnormal spikes, and flat segments). Include one global SHAP summary and at least one local explanation for both SHAP and LIME.
 
 Figure placeholders:
 - Fig. 1: SHAP global feature importance summary
-- Fig. 2: SHAP force/waterfall plot for one true-positive theft sample
-- Fig. 3: LIME explanation for one borderline sample
+- Fig. 2: SHAP force or waterfall plot for one true-positive theft sample
+- Fig. 3: LIME local explanation for one borderline sample
 
 ### C. Adversarial Robustness Findings
-
-Table 2 template:
 
 | Epsilon | Precision | Recall | F1-score | Relative F1 Drop |
 | --- | --- | --- | --- | --- |
@@ -208,55 +130,40 @@ Table 2 template:
 
 ### D. Trade-off Analysis
 
-Discuss:
-- Accuracy vs robustness
-- Sensitivity vs false alarms
-- Interpretability depth vs computational overhead
+This section should explain how robustness testing changes confidence in deployment readiness. In particular, discuss: (i) the balance between recall and false alarms, (ii) degradation trends under increasing $\epsilon$, and (iii) computational overhead introduced by explainability and robustness analysis.
 
 ### E. Threats to Validity
 
-- Synthetic labels may not capture all real theft patterns
-- Distribution gap between public dataset and utility-specific meter behavior
-- Adversarial setting may not reflect full physical attack surface
+Synthetic labels may not represent all real-world theft strategies, and domain shift from public datasets to utility-specific distributions can affect generalization. Additionally, FGSM represents a first-order attack model and may not cover all practical attack channels.
 
 ## VI. Ethical and Practical Considerations
 
-- Risk of false positives affecting legitimate customers
-- Need for human-in-the-loop review before punitive action
-- Data privacy and secure handling of consumption traces
-- Bias checks for regional or socioeconomic usage patterns (future work)
+False positives can create customer-impact risk; therefore, predictions should support, not replace, human investigation workflows. Data handling must follow privacy principles for meter traces. Future iterations should include fairness checks across demographic or regional usage segments to reduce unintended bias in enforcement-related decisions.
 
 ## VII. Conclusion and Future Work
 
-This project demonstrates a practical trustworthy AI pipeline for electricity theft detection using LSTM, explainability, and adversarial robustness testing. Future work includes validation on real labeled utility data, adversarial training for defense, and expansion to transformer-based sequence models.
+This report presents a deployment-oriented trustworthy AI approach for electricity theft detection using LSTM classification, explainability analysis, and adversarial stress testing. The pipeline is reproducible in Colab and structured for academic evaluation and practical discussion. Future work includes testing on real labeled utility data, incorporating adversarial training defenses, and benchmarking against alternative sequence architectures such as temporal convolutional networks and transformers.
 
 ## Acknowledgment
 
 This report is prepared as part of the Advanced Artificial Intelligence course project at UNITEN.
 
-## References (Initial Draft)
+## References
 
-[1] P. Jokar, N. Arianpoo, and V. C. M. Leung, "Electricity theft detection in AMI using customers' consumption patterns," IEEE Transactions on Smart Grid, vol. 7, no. 1, pp. 216-226, 2016.
+[1] P. Jokar, N. Arianpoo, and V. C. M. Leung, "Electricity theft detection in AMI using customers' consumption patterns," IEEE Transactions on Smart Grid, vol. 7, no. 1, pp. 216-226, 2016. DOI: https://doi.org/10.1109/TSG.2015.2425222
 
-[2] S. M. Lundberg and S.-I. Lee, "A unified approach to interpreting model predictions," in Advances in Neural Information Processing Systems (NeurIPS), 2017.
+[2] S. M. Lundberg and S.-I. Lee, "A unified approach to interpreting model predictions," in Advances in Neural Information Processing Systems (NeurIPS), 2017. URL: https://arxiv.org/abs/1705.07874
 
-[3] I. J. Goodfellow, J. Shlens, and C. Szegedy, "Explaining and harnessing adversarial examples," in International Conference on Learning Representations (ICLR), 2015.
+[3] I. J. Goodfellow, J. Shlens, and C. Szegedy, "Explaining and harnessing adversarial examples," in International Conference on Learning Representations (ICLR), 2015. URL: https://arxiv.org/abs/1412.6572
 
-[4] M. R. Asghar, G. Dan, D. Miorandi, and I. Chlamtac, "Smart meter data privacy and security: A survey," IEEE Communications Surveys and Tutorials, vol. 19, no. 4, pp. 2820-2835, 2017.
+[4] M. R. Asghar, G. Dan, D. Miorandi, and I. Chlamtac, "Smart meter data privacy and security: A survey," IEEE Communications Surveys and Tutorials, vol. 19, no. 4, pp. 2820-2835, 2017. DOI: https://doi.org/10.1109/COMST.2017.2720195
 
-[5] Add at least one recent (2021+) electricity theft or smart-grid anomaly detection paper.
+[5] Add at least one 2021+ electricity theft or smart-grid anomaly detection paper from IEEE, Elsevier, or Springer.
 
-Reference links for drafting:
-- Jokar et al. (2016): https://doi.org/10.1109/TSG.2015.2425222
-- Lundberg and Lee (2017): https://arxiv.org/abs/1705.07874
-- Goodfellow et al. (2015): https://arxiv.org/abs/1412.6572
-- Asghar et al. (2017): https://doi.org/10.1109/COMST.2017.2720195
+## Finalization Checklist
 
-## Writing Checklist
-
-- [ ] Replace all [fill] placeholders with experiment outputs
-- [ ] Add figure references and captions from notebook plots
-- [ ] Convert to IEEE two-column template in final submission format
-- [ ] Ensure all claims in discussion are supported by metrics
-- [ ] Add minimum 3 strong academic references (already seeded with 4)
-- [ ] Proofread for tense consistency and technical clarity
+- [ ] Replace all [fill] entries with notebook outputs
+- [ ] Insert figure files and in-text citations (Fig. 1, Fig. 2, Fig. 3)
+- [ ] Validate that claims in discussion are backed by reported metrics
+- [ ] Convert to IEEE two-column final template prior to submission
+- [ ] Add full author names and affiliations
