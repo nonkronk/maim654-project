@@ -127,7 +127,7 @@ The final hidden state $h_T$ from the second LSTM layer feeds into a classificat
 \end{equation}
 where $\hat{y} \in [0, 1]$ represents the predicted probability of theft.
 
-Model hyperparameters: hidden dimension $H = 64$, number of layers $L = 2$, dropout $p = 0.2$ applied between LSTM layers and within the classifier. The total parameter count is approximately 530K.
+Model hyperparameters: hidden dimension $H = 64$, number of layers $L = 2$, dropout $p = 0.2$ applied between LSTM layers and within the classifier. The total parameter count is approximately 68K.
 
 Training uses Binary Cross-Entropy Loss with positive class weighting to handle imbalance:
 \begin{equation}
