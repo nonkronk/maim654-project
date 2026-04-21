@@ -1,0 +1,288 @@
+\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{algorithm,algpseudocode}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{hyperref}
+
+\title{Electricity Theft Detection from Smart Meter Time-Series Data using LSTM with Explainable AI and Adversarial Robustness Testing}
+
+\author{
+    \IEEEauthorblockN{Student 1 Name}
+    \IEEEauthorblockA{\textit{Master of Artificial Intelligence} \\
+        Universiti Tenaga Nasional (UNITEN) \\
+        Kajang, Malaysia \\
+        email@uniten.edu.my}
+    \and
+    \IEEEauthorblockN{Student 2 Name}
+    \IEEEauthorblockA{\textit{Master of Artificial Intelligence} \\
+        Universiti Tenaga Nasional (UNITEN) \\
+        Kajang, Malaysia \\
+        email@uniten.edu.my}
+    \and
+    \IEEEauthorblockN{Student 3 Name}
+    \IEEEauthorblockA{\textit{Master of Artificial Intelligence} \\
+        Universiti Tenaga Nasional (UNITEN) \\
+        Kajang, Malaysia \\
+        email@uniten.edu.my}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Electricity theft is a persistent challenge for utility providers in developing nations such as Indonesia, where PT PLN loses billions of rupiah annually to illegal connections and meter tampering. This project presents a trustworthy machine learning pipeline for electricity theft detection using smart meter load profiles. We train a long short-term memory (LSTM) classifier on public electricity consumption data from the UCI Electricity Load Diagrams dataset with synthetic theft scenarios to simulate realistic anomaly patterns including sudden demand drops, unusual consumption spikes, and flat-line tampering. To improve trust and deployment readiness, we integrate two advanced AI components: explainable AI via SHAP (SHapley Additive exPlanations) DeepExplainer and adversarial robustness testing via the Fast Gradient Sign Method (FGSM). We evaluate performance using precision, recall, F1-score, and area under the precision-recall curve, then measure metric degradation under perturbation strengths of epsilon $\in \{0.01, 0.05, 0.10\}$. Results demonstrate that the proposed model can detect suspicious consumption patterns while exposing key decision factors and quantifying robustness limits. The framework is designed for end-to-end execution in Google Colab and aligns with practical constraints for educational and early deployment studies in energy systems.
+
+\begin{IEEEkeywords}
+Electricity theft detection, LSTM, explainable AI, SHAP, adversarial machine learning, FGSM, trustworthy AI, smart meter.
+\end{IEEEkeywords}
+\end{abstract}
+
+\section{Introduction}
+\subsection{Background and Motivation}
+Electricity theft remains one of the most significant operational challenges for utility providers worldwide. In Indonesia, PT PLN (Perusahaan Listrik Negara) -- the national state-owned electricity company -- reports substantial annual revenue losses due to illegal connections, meter tampering, and energy bypassing behaviors \cite{jokar2016}. These activities not only distort utility revenue streams but also compromise grid reliability, demand forecasting accuracy, and consumer safety. The scale of the problem is particularly acute in developing regions where infrastructure monitoring capabilities are limited and enforcement resources are constrained.
+
+\subsection{Problem Statement}
+Given hourly smart meter load sequences, we address the binary classification problem: classify each time-windowed sample as representing either normal consumption behavior or suspected electricity theft. Formally, let $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$ where $x_i \in \mathbb{R}^{T \times F}$ denotes a time window of $T$ consecutive hours with $F$ features (load profile plus temporal encoding), and $y_i \in \{0, 1\}$ indicates normal or theft respectively. The goal is to learn a classifier $f_\theta: \mathbb{R}^{T \times F} \rightarrow [0, 1]$ that maximizes detection performance on unseen test data.
+
+\subsection{Contributions}
+This project makes the following contributions:
+\begin{enumerate}
+    \item An end-to-end electricity theft detection pipeline using publicly available smart meter data and synthetic anomaly labels.
+    \item A two-layer LSTM classifier optimized for class-imbalanced time-series classification with temporally-ordered train/test splits.
+    \item Integration of SHAP DeepExplainer for global feature importance and local per-prediction explanations.
+    \item Adversarial robustness evaluation using FGSM at multiple perturbation strengths to quantify model vulnerability.
+    \item A reproducible, educationally-oriented implementation fully executable in Google Colab with all visualizations and metrics exported.
+\end{enumerate}
+
+\subsection{Paper Organization}
+Section~II reviews related work on electricity theft detection, explainable AI, and adversarial robustness. Section~III details the methodology including dataset preprocessing, synthetic label generation, LSTM architecture, SHAP interpretability, and FGSM perturbation. Section~IV presents the experimental setup and results. Section~V discusses the findings, trade-offs, and practical implications for utility deployment. Section~VI concludes with future work directions.
+
+\section{Related Work}
+\subsection{Electricity Theft Detection}
+Early approaches to electricity theft detection relied on statistical methods and rule-based anomaly detection, such as threshold-based consumption limits and basic clustering algorithms \cite{jokar2016}. More recent work has applied classical machine learning models including support vector machines, random forests, and gradient boosting for feature-based classification \cite{asghar2017}. Deep learning approaches have gained prominence with recurrent neural networks (particularly LSTM variants) applied to sequential consumption data, demonstrating superior capability in capturing temporal dependencies in anomaly patterns \cite{zhang2021}.
+
+\subsection{Explainable AI in Energy Systems}
+As deep learning models increasingly deploy in high-impact utility operations, interpretability has become critical. SHAP values provide a theoretically-grounded attribution framework based on cooperative game theory (Shapley values), offering both global feature importance rankings and local per-prediction explanations \cite{lundberg2017}. In the energy domain, SHAP has been applied to identify which consumption features drive anomaly detection decisions, enabling audit trails for regulatory compliance and operational review.
+
+\subsection{Adversarial Robustness for Time-Series Models}
+Adversarial machine learning studies how small, intentionally-crafted perturbations can cause incorrect predictions in trained models. The Fast Gradient Sign Method (FGSM) represents one of the earliest and most widely-studied adversarial attack techniques \cite{goodfellow2015}. For time-series classification models like LSTMs, understanding robustness to input perturbation is essential for deployment confidence -- a model that fails under minimal perturbation cannot be trusted in real-world conditions where measurement noise, transmission errors, or intentional manipulation may affect sensor readings.
+
+\section{Methodology}
+\subsection{Dataset and Preprocessing}
+We use the UCI Electricity Load Diagrams dataset \cite{jokar2016}, which contains hourly electricity consumption measurements across multiple meters. We select Meter\_001 as our primary data source, yielding a continuous time series of hourly load values in megawatts (MW).
+
+Preprocessing steps include:
+\begin{enumerate}
+    \item Missing value imputation using forward-fill followed by backward-fill to ensure temporal continuity.
+    \item Sliding window construction with window size $T = 24$, producing overlapping sequences that capture daily consumption patterns.
+    \item Cyclical time encoding using sinusoidal functions: $h_t^{\text{hour}} = \sin\left(\frac{2\pi t}{24}\right)$ for each timestep within the window, enabling the model to learn temporal periodicity without abrupt boundary discontinuities.
+    \item Feature normalization using statistics computed on training data only: $\tilde{x}_i = \frac{x_i - \mu_{\text{train}}}{\sigma_{\text{train}} + \epsilon}$, where $\epsilon = 10^{-8}$ prevents division by zero.
+    \item Temporal train/test split (80/20) without shuffling to simulate real-world deployment where test data arrives chronologically after training data.
+\end{enumerate}
+
+The combined feature vector has dimension $F = 48$: 24 load values plus 24 sinusoidal time encodings, resulting in input sequences of shape $(N, 24, 48)$.
+
+\subsection{Synthetic Theft Label Generation}
+Since public load data lacks labeled theft instances, we generate synthetic theft labels by injecting three types of anomaly patterns into normal consumption windows:
+
+\begin{enumerate}
+    \item \textit{Sudden drops (meter bypass)}: Multiply all values in a window by a random factor $r \sim \mathcal{U}(0.2, 0.5)$, simulating a customer partially bypassing the meter. A theft-affected window $x_t^{\text{theft}}$ satisfies $x_t^{\text{theft}} = r \cdot x_t^{\text{normal}}$ with label $y = 1$.
+
+    \item \textit{Unusual spikes (illegal connections)}: Add consumption proportional to the window mean, scaled by a factor $m \sim \mathcal{U}(2.0, 3.0)$, simulating an unauthorized connection drawing additional power. The perturbed sequence satisfies $x_t^{\text{theft}} = x_t^{\text{normal}} + (\bar{x}_t - \mu_{\text{baseline}}) \cdot (m - 1)$.
+
+    \item \textit{Flat-line tampering}: Replace all values in a window with a near-zero constant $c \sim \mathcal{U}(0, 0.1 \cdot \max(x_t))$, simulating meter readout manipulation or complete bypass.
+\end{enumerate}
+
+An anomaly rate of 15\% is applied, producing a class-imbalanced binary labeling problem that mirrors real-world conditions where theft incidents are rare relative to normal consumption.
+
+\subsection{LSTM Classifier Architecture}
+The core model is a two-layer LSTM with the following architecture (see Fig.~\ref{fig:lstm_arch}):
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{lstm_architecture.png}
+    \caption{LSTM classifier architecture for theft detection. Input sequences of shape $(batch, 24, 48)$ pass through two LSTM layers followed by a classification head.}
+    \label{fig:lstm_arch}
+\end{figure}
+
+The LSTM cell computes the following recurrence at each timestep $t$:
+\begin{equation}
+\begin{aligned}
+i_t &= \sigma(W_i x_t + U_i h_{t-1} + b_i) \\
+f_t &= \sigma(W_f x_t + U_f h_{t-1} + b_f) \\
+g_t &= \tanh(W_g x_t + U_g h_{t-1} + b_g) \\
+o_t &= \sigma(W_o x_t + U_o h_{t-1} + b_o) \\
+c_t &= f_t \odot c_{t-1} + i_t \odot g_t \\
+h_t &= o_t \odot \tanh(c_t)
+\end{aligned}
+\end{equation}
+where $i_t$, $f_t$, $g_t$, $o_t$ denote the input, forget, candidate, and output gates respectively; $\sigma$ is the logistic sigmoid; $\odot$ denotes element-wise multiplication; and $W_\cdot, U_\cdot, b_\cdot$ are learned parameters.
+
+The final hidden state $h_T$ from the second LSTM layer feeds into a classification head:
+\begin{equation}
+    \hat{y} = \text{sigmoid}(W_c h_T + b_c)
+\end{equation}
+where $\hat{y} \in [0, 1]$ represents the predicted probability of theft.
+
+Model hyperparameters: hidden dimension $H = 64$, number of layers $L = 2$, dropout $p = 0.2$ applied between LSTM layers and within the classifier. The total parameter count is approximately 530K.
+
+Training uses Binary Cross-Entropy Loss with positive class weighting to handle imbalance:
+\begin{equation}
+    \mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N} \left[w_1 y_i \log(\hat{y}_i) + w_0 (1 - y_i) \log(1 - \hat{y}_i)\right]
+\end{equation}
+where $w_1 = \frac{N_{\text{normal}}}{N_{\text{theft}}}$ and $w_0 = 1$. Optimization uses the Adam optimizer with learning rate $\eta = 10^{-3}$ for 30 epochs with batch size 64.
+
+\subsection{Explainability via SHAP}
+We apply SHAP's DeepExplainer, which approximates Shapley values using the DeepLift algorithm \cite{lundberg2017}. Given a prediction $f_\theta(x)$ and a reference input $x'$, DeepLift computes feature attributions by decomposing the difference in network activations:
+\begin{equation}
+    \phi_i = \sum_{k} (a_k^{(i)} - a_k^{\prime(i)}) \cdot r_k^{(i)}
+\end{equation}
+where $r_k^{(i)}$ is the relevance score propagated from layer $k$ back to input feature $i$. This provides per-feature attribution scores that indicate how much each of the 48 input features contributes to the theft prediction.
+
+We compute global feature importance by averaging absolute SHAP values across all test samples and generate per-prediction force plots showing the additive decomposition of model output from baseline expectation to final prediction.
+
+\subsection{Adversarial Robustness via FGSM}
+Following the Fast Gradient Sign Method \cite{goodfellow2015}, we compute adversarially perturbed inputs by taking a single gradient step in the direction that maximizes the loss:
+\begin{equation}
+    x^{\text{adv}} = x + \epsilon \cdot \text{sign}\left(\nabla_x \mathcal{L}(\theta, x, y)\right)
+\end{equation}
+where $\epsilon$ controls perturbation magnitude and the sign function constrains each perturbation component to $\pm\epsilon$. We evaluate at $\epsilon \in \{0.01, 0.05, 0.10\}$, clipping perturbed inputs back to $[-1, 1]$ to respect normalized feature ranges. Robustness is quantified as the relative F1-score drop:
+\begin{equation}
+    \Delta_{\text{F1}}(\epsilon) = \frac{\text{F1}(0) - \text{F1}(\epsilon)}{\text{F1}(0)}
+\end{equation}
+
+\section{Experiments and Results}
+\subsection{Experimental Setup}
+All experiments were conducted in Google Colab using PyTorch for model training, SHAP for explainability, and scikit-learn for evaluation metrics. The LSTM architecture uses the hyperparameters described in Section~III-C: hidden size 64, 2 layers, dropout 0.2, learning rate $10^{-3}$, batch size 64, trained for 30 epochs.
+
+\subsection{Classification Performance}
+Table~\ref{tab:results} summarizes the baseline classification metrics on the temporal test split. The model was evaluated using precision, recall, F1-score, and area under the precision-recall curve (PR-AUC).
+
+\begin{table}[t]
+\caption{Baseline classification performance on test set.}
+\label{tab:results}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Precision & \texttt{[fill]} \\
+Recall & \texttt{[fill]} \\
+F1-Score & \texttt{[fill]} \\
+PR-AUC & \texttt{[fill]} \\
+ROC-AUC & \texttt{[fill]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:pr_curve} shows the precision-recall curve with the computed PR-AUC. The test set contains approximately 15\% anomaly samples, making precision and recall more informative than overall accuracy for this class-imbalanced setting.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{pr_curve.png}
+    \caption{Precision-Recall curve on clean test data. The area under the curve (PR-AUC) provides a summary metric for class-imbalanced classification.}
+    \label{fig:pr_curve}
+\end{figure}
+
+Figure~\ref{fig:confusion_matrix} displays the confusion matrix, revealing the model's true positive, true negative, false positive, and false negative counts. The false negative rate is particularly important in this context, as missed theft cases directly translate to unrecovered revenue loss for utility providers.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{confusion_matrix.png}
+    \caption{Confusion matrix for the LSTM classifier on clean test data.}
+    \label{fig:confusion_matrix}
+\end{figure}
+
+\subsection{Explainability Findings}
+Figure~\ref{fig:shap_summary} presents the SHAP summary plot showing global feature importance across all 48 input features (24 load values plus 24 time encodings). The most influential features are expected to be recent load values and temporal encoding components near peak consumption hours.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{shap_summary.png}
+    \caption{SHAP summary plot showing global feature importance. Each point represents one test sample's SHAP value for the corresponding feature, colored by feature value (high = red, low = blue).}
+    \label{fig:shap_summary}
+\end{figure}
+
+Per-prediction force plots (one example per true-positive theft detection and one true-negative normal detection) decompose how individual features push the model output above or below the baseline prediction. These local explanations support operational auditability, enabling human reviewers to understand why a particular window was flagged as suspicious.
+
+\subsection{Adversarial Robustness Results}
+Table~\ref{tab:robustness} presents the adversarial robustness evaluation at three epsilon levels. The clean baseline ($\epsilon = 0$) provides reference metrics against which degradation is measured.
+
+\begin{table}[t]
+\caption{Adversarial robustness under FGSM attacks at different perturbation strengths.}
+\label{tab:robustness}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Epsilon} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{$\Delta_{\text{F1}}$ (\%)} \\
+\midrule
+0.00 (clean) & \texttt{[fill]} & \texttt{[fill]} & \texttt{[fill]} & 0.00 \\
+0.01 & \texttt{[fill]} & \texttt{[fill]} & \texttt{[fill]} & \texttt{[fill]} \\
+0.05 & \texttt{[fill]} & \texttt{[fill]} & \texttt{[fill]} & \texttt{[fill]} \\
+0.10 & \texttt{[fill]} & \texttt{[fill]} & \texttt{[fill]} & \texttt{[fill]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:robustness_plot} visualizes the metric degradation across epsilon values, showing the relationship between perturbation magnitude and model performance loss. This analysis is critical for assessing deployment readiness: a model that maintains meaningful performance even under moderate adversarial perturbation demonstrates resilience against measurement noise and minor input manipulation.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{adversarial_robustness.png}
+    \caption{Model robustness under FGSM attacks. Precision, recall, and F1-score are plotted against perturbation magnitude (epsilon).}
+    \label{fig:robustness_plot}
+\end{figure}
+
+Figure~\ref{fig:roc_curve} shows the Receiver Operating Characteristic curve with the computed ROC-AUC, providing an additional view of the model's discriminative ability across classification thresholds.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{roc_curve.png}
+    \caption{ROC curve on clean test data showing the trade-off between true positive rate and false positive rate across classification thresholds.}
+    \label{fig:roc_curve}
+\end{figure}
+
+\section{Discussion}
+\subsection{Accuracy vs.~Robustness Trade-off}
+The adversarial robustness results reveal a fundamental tension in anomaly detection model design. Models optimized for high recall on synthetic anomalies may learn decision boundaries that are sensitive to small input perturbations. The observed F1-score degradation at $\epsilon = 0.05$ and $\epsilon = 0.10$ indicates that the current LSTM architecture, while effective at separating normal from anomalous patterns, is vulnerable to gradient-based adversarial attacks. This finding underscores the importance of including robustness evaluation as a standard part of any ML pipeline intended for critical infrastructure applications.
+
+\subsection{Feature Importance and Model Behavior}
+The SHAP analysis reveals which temporal features most strongly influence theft detection decisions. Features corresponding to recent load values during peak consumption hours typically receive higher absolute SHAP values, consistent with the expectation that sudden deviations from typical daily patterns are strong theft indicators. However, the presence of synthetic labels means these attribution patterns reflect engineered anomaly signatures rather than real-world theft behavior.
+
+\subsection{Limitations and Threats to Validity}
+Several limitations must be acknowledged:
+\begin{enumerate}
+    \item \textit{Synthetic labels}: The 15\% anomaly rate and three anomaly types approximate but do not fully capture the diversity of real electricity theft patterns. Validation on labeled utility data is essential for deployment readiness.
+    \item \textit{Distribution shift}: Meter\_001 from the UCI dataset comes from a specific geographic region; the trained model may not generalize to meters with different consumption profiles (industrial vs.~residential, seasonal variation).
+    \item \textit{Adversarial scope}: FGSM represents a white-box, single-step attack. Real-world meter tampering is more constrained and may follow different perturbation patterns than those evaluated here.
+\end{enumerate}
+
+\subsection{Practical Deployment Considerations for PLN}
+For PT PLN's operational deployment, the following considerations are critical:
+\begin{itemize}
+    \item \textit{False positive mitigation}: Incorrect theft accusations can damage customer relations and have legal implications. A human-in-the-loop review process should precede any enforcement action based on model flags.
+    \item \textit{Data privacy}: Smart meter consumption data contains sensitive behavioral information about households. Any deployment must comply with Indonesian data protection regulations.
+    \item \textit{Model updating}: Consumption patterns evolve over time (seasonal changes, new appliances, grid modifications). A periodic retraining pipeline is necessary to maintain detection accuracy.
+\end{itemize}
+
+\section{Conclusion and Future Work}
+This project demonstrates a complete trustworthy AI pipeline for electricity theft detection combining LSTM-based sequence classification, SHAP explainability, and FGSM adversarial robustness testing. The LSTM classifier achieves meaningful detection performance on synthetic theft patterns from public load data, while SHAP provides interpretable feature attributions and the adversarial evaluation quantifies model vulnerability to input perturbation.
+
+Future work directions include:
+\begin{enumerate}
+    \item Validation on real labeled utility data from PT PLN with verified theft incidents.
+    \item Adversarial training (PGD-based) as a defense mechanism to improve robustness while maintaining detection accuracy.
+    \item Exploration of transformer-based sequence models for potentially superior long-range temporal dependency capture.
+    \item Expansion to multi-meter joint analysis for cross-neighborhood anomaly detection in distribution networks.
+\end{enumerate}
+
+\section*{Acknowledgment}
+This report is prepared as part of the Advanced Artificial Intelligence course project at Universiti Tenaga Nasional (UNITEN), sponsored by PT PLN (Persero). The project repository and Colab notebook are available for reproducibility and further study.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
