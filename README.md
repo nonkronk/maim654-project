@@ -4,23 +4,6 @@ A group project for the Master in Artificial Intelligence (UNITEN), developed fo
 
 Program link: [Master in Artificial Intelligence (UNITEN)](https://www.uniten.edu.my/programme/postgraduate/master-in-artificial-intelligence-by-coursework-project)
 
-## Quick Navigation
-
-- [Project Context](#project-context)
-- [Problem Statement](#problem-statement)
-- [Advanced AI Topics (Required Integration)](#advanced-ai-topics-required-integration)
-- [Proposed Technical Pipeline](#proposed-technical-pipeline)
-- [Dataset Strategy](#dataset-strategy)
-- [Repository Layout](#repository-layout)
-- [Deliverables Alignment](#deliverables-alignment)
-- [Progress Roadmap](#progress-roadmap)
-- [Planned Evaluation Metrics](#planned-evaluation-metrics)
-- [Planned Visualizations](#planned-visualizations)
-- [Reproducibility and Constraints](#reproducibility-and-constraints)
-- [Suggested Notebook Dependencies](#suggested-notebook-dependencies)
-- [References and Related Reading](#references-and-related-reading)
-- [License and Academic Use](#license-and-academic-use)
-
 ## Project Context
 
 This repository is built to fulfill the requirements in [project-statement.md](project-statement.md) for the course project titled "Electricity Theft Detection with Trustworthy AI".
