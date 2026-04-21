@@ -1,3 +1,4 @@
 .profile
 .superpowers
-.DS_Store.worktrees/
+.DS_Store
+.worktrees/
