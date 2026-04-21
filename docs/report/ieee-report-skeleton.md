@@ -18,9 +18,9 @@ Electricity Theft Detection from Smart Meter Time-Series Data using LSTM with Ex
 
 ## Authors
 
-- Student 1 Name, UNITEN, email
-- Student 2 Name, UNITEN, email
-- Student 3 Name, UNITEN, email
+- Muhamad Nazmi Bin Ismail, UNITEN, [sg1085206@student.uniten.edu.my](mailto:sg1085206@student.uniten.edu.my)
+- Tristian Irvan, UNITEN, [sg1086198@student.uniten.edu.my](mailto:sg1086198@student.uniten.edu.my)
+- Sulaksono Firmanto Eri, UNITEN, [sg1086197@student.uniten.edu.my](mailto:sg1086197@student.uniten.edu.my)
 
 ## Abstract
 
